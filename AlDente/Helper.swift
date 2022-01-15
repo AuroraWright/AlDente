@@ -27,6 +27,7 @@ final class Helper {
     
     public var appleSilicon:Bool?
     public var chargeInhibited: Bool = false
+    public var chargerUnplugged: Bool = false    
     public var isInitialized:Bool = false
     
     public var statusString:String = ""
@@ -56,13 +57,13 @@ final class Helper {
     }
     func setStatusString(){
         checkCharging()
-        var sleepDisabled:Bool = !(preventSleepID == nil)
+        let sleepDisabled:Bool = !(preventSleepID == nil)
         statusString = ""
         if(PersistanceManager.instance.oldKey){
             statusString = "BCLM Key Mode. Final charge value can differ by up to 5%"
         }
         else{
-            statusString = "Charge Inhibit: "+String(chargeInhibited)+" | Prevent Sleep: "+String(sleepDisabled)+" | Helper v"+String(helperVersion)+": \(self.isInitialized ? "found" : "not found")"
+            statusString = "Charge Inhibit: \(chargeInhibited ? "✅" : "❌") | Prevent Sleep: \(sleepDisabled ? "✅" : "❌") | Unplug Charger: \(chargerUnplugged ? "✅" : "❌")\nHelper v"+String(helperVersion)+": \(self.isInitialized ? "✅" : "❌")"
         }
         
         
@@ -73,40 +74,42 @@ final class Helper {
     func enableSleep(){
         if(self.preventSleepID != nil){
             print("RELEASING PREVENT SLEEP ASSERTION WITH ID: ",preventSleepID!)
-            releaseAssertion(assertionId: self.preventSleepID!)
+            IOPMAssertionRelease(self.preventSleepID!)
             self.preventSleepID = nil
+            DisableClamshellSleep.rootDomain_SetDisableClamShellSleep(false)
         }
     }
     
     func disableSleep(){
-        createAssertion(assertion: kIOPMAssertionTypePreventSystemSleep){ id in
-            if(self.preventSleepID == nil){
-                print("PREVENT SLEEP ASSERTION CREATED! ID: ",id)
-                self.preventSleepID = id
+        if(self.preventSleepID == nil){
+            var assertionID : IOPMAssertionID = IOPMAssertionID(0)
+            let reason:CFString = "AlDente" as NSString
+            let cfAssertion:CFString = kIOPMAssertionTypePreventSystemSleep as NSString
+            let success = IOPMAssertionCreateWithName(cfAssertion,
+                            IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                            reason,
+                            &assertionID)
+            if success == kIOReturnSuccess {
+                self.preventSleepID = assertionID
+                DisableClamshellSleep.rootDomain_SetDisableClamShellSleep(true)
             }
         }
     }
     
     func enableCharging(){
-        if(appleSilicon!){
-            SMCWriteByte(key: "CH0B", value: 00)
-        }
-        SMCWriteByte(key: "CH0B", value: 00)
+        SMCWriteByte(key: "CH0C", value: 00)
         self.chargeInhibited = false
         
     }
     
     func disableCharging(){
-        if(appleSilicon!){
-            SMCWriteByte(key: "CH0B", value: 02)
-        }
-        SMCWriteByte(key: "CH0B", value: 02)
+        SMCWriteByte(key: "CH0C", value: 02)
         self.chargeInhibited = true
         
     }
     
     func checkCharging(){
-        Helper.instance.SMCReadUInt32(key: "CH0B") { value in
+        Helper.instance.SMCReadUInt32(key: "CH0C") { value in
             self.chargeInhibited = !(value == 00)
             print("CHARGE INHIBITED: "+String(self.chargeInhibited))
         }
@@ -115,48 +118,40 @@ final class Helper {
         }
 
     }
+
+    func enableDischarging(){
+        Helper.instance.SMCReadByte(key: "CH0J") { value in
+            if(value == 0x20){
+                self.disableDischarging()
+            }
+            else if(value == 00){
+                self.SMCWriteByte(key: "CH0J", value: 01)
+                self.chargerUnplugged = true
+            }
+        }        
+    }
     
-    func getChargingInfo(withReply reply: (String,Int,Bool,Int) -> Void){
+    func disableDischarging(){
+        SMCWriteByte(key: "CH0J", value: 00)
+        self.chargerUnplugged = false
+    }
+    
+    func getChargingInfo(withReply reply: (String,Int,Bool,Bool,Int) -> Void){
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as Array
         let info = IOPSGetPowerSourceDescription(snapshot, sources[0]).takeUnretainedValue() as! [String: AnyObject]
+
+        let isChargerUsed = (info[kIOPSPowerSourceStateKey] as! String == kIOPSACPowerValue)
 
         if let name = info[kIOPSNameKey] as? String,
             let capacity = info[kIOPSCurrentCapacityKey] as? Int,
             let isCharging = info[kIOPSIsChargingKey] as? Bool,
             let max = info[kIOPSMaxCapacityKey] as? Int {
-            reply(name,capacity,isCharging,max)
+            reply(name,capacity,isCharging,isChargerUsed,max)
         }
     }
     
-    func getSMCCharge(withReply reply: @escaping (Float)->Void){
-        Helper.instance.SMCReadUInt32(key: "BRSC") { value in
-            let smcval = Float(value >> 16)
-            reply(smcval)
-        }
-    }
-    
-    @objc func createAssertion(assertion: String, withReply reply: @escaping (IOPMAssertionID) -> Void){
-        let helper = helperToolConnection.remoteObjectProxyWithErrorHandler {
-            let e = $0 as NSError
-            print("Remote proxy error \(e.code): \(e.localizedDescription) \(e.localizedRecoverySuggestion ?? "---")")
-        } as? HelperToolProtocol
-
-        helper?.createAssertion(assertion: assertion, withReply: { id in
-            reply(id)
-        })
-    }
-    
-    @objc func releaseAssertion(assertionId: IOPMAssertionID){
-        let helper = helperToolConnection.remoteObjectProxyWithErrorHandler {
-            let e = $0 as NSError
-            print("Remote proxy error \(e.code): \(e.localizedDescription) \(e.localizedRecoverySuggestion ?? "---")")
-        } as? HelperToolProtocol
-
-        helper?.releaseAssertion(assertionID: assertionId)
-    }
-    
-    @objc func installHelper() {
+    func installHelper() {
         print("trying to install helper!")
         var status = noErr
         let helperID = "com.davidwernhart.Helper" as CFString // Prefs.helperID as CFString
@@ -202,39 +197,19 @@ final class Helper {
         exit(0)
     }
     
-    @objc func setResetValues(){
-        let helper = helperToolConnection.remoteObjectProxyWithErrorHandler {
-            let e = $0 as NSError
-            print("Remote proxy error \(e.code): \(e.localizedDescription) \(e.localizedRecoverySuggestion ?? "---")")
-
-        } as? HelperToolProtocol
-        
-        helper?.setResetVal(key: "CH0B", value: 00)
-    }
-
-    @objc func writeMaxBatteryCharge(setVal: UInt8) {
+    func writeMaxBatteryCharge(setVal: UInt8) {
         SMCWriteByte(key: "BCLM", value: setVal)
 
     }
 
-    @objc func readMaxBatteryCharge() {
+    func readMaxBatteryCharge() {
         SMCReadByte(key: "BCLM") { value in
             print("OLD KEY MAX CHARGE: "+String(value))
             self.delegate?.OnMaxBatRead(value: value)
         }
     }
-    
-    @objc func enableCharging(enabled: Bool) {
-        if(enabled){
-            SMCWriteByte(key: "CH0B", value: 00)
-        }
-        else{
-            SMCWriteByte(key: "CH0B", value: 02)
-        }
 
-    }
-
-    @objc func checkHelperVersion(withReply reply: @escaping (Bool) -> Void) {
+    func checkHelperVersion(withReply reply: @escaping (Bool) -> Void) {
         print("checking helper version")
         let helper = helperToolConnection.remoteObjectProxyWithErrorHandler {
             let e = $0 as NSError
@@ -257,7 +232,7 @@ final class Helper {
         }
     }
 
-    @objc func SMCReadByte(key: String, withReply reply: @escaping (UInt8) -> Void) {
+    func SMCReadByte(key: String, withReply reply: @escaping (UInt8) -> Void) {
         let helper = helperToolConnection.remoteObjectProxyWithErrorHandler {
             let e = $0 as NSError
             print("Remote proxy error \(e.code): \(e.localizedDescription) \(e.localizedRecoverySuggestion ?? "---")")
@@ -269,7 +244,7 @@ final class Helper {
         }
     }
     
-    @objc func SMCReadUInt32(key: String, withReply reply: @escaping (UInt32) -> Void) {
+    func SMCReadUInt32(key: String, withReply reply: @escaping (UInt32) -> Void) {
         let helper = helperToolConnection.remoteObjectProxyWithErrorHandler {
             let e = $0 as NSError
             print("Remote proxy error \(e.code): \(e.localizedDescription) \(e.localizedRecoverySuggestion ?? "---")")
@@ -281,7 +256,7 @@ final class Helper {
         }
     }
 
-    @objc func SMCWriteByte(key: String, value: UInt8) {
+    func SMCWriteByte(key: String, value: UInt8) {
         let helper = helperToolConnection.remoteObjectProxyWithErrorHandler {
             let e = $0 as NSError
             print("Remote proxy error \(e.code): \(e.localizedDescription) \(e.localizedRecoverySuggestion ?? "---")")

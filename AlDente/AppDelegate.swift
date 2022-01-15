@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationWillTerminate(_ aNotification: Notification) {
         Helper.instance.enableSleep()
+        Helper.instance.disableDischarging()
         Helper.instance.enableCharging()
     }
 
@@ -66,38 +67,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        LaunchAtLogin.isEnabled = true
         SMCPresenter.shared.loadValue()
         
         Helper.instance.checkCharging()
+        Helper.instance.disableDischarging()
         
         var actionMsg:String?
 
         Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { timer in
             if(Helper.instance.isInitialized){
-                Helper.instance.getChargingInfo { (Name, Capacity, IsCharging, MaxCapacity) in
-                    
-                    
+                Helper.instance.getChargingInfo { (Name, Capacity, IsCharging, IsChargerUsed, MaxCapacity) in
+
                     if(!PersistanceManager.instance.oldKey){
+
                         if(Capacity < SMCPresenter.shared.value){
                             actionMsg = "NEED TO CHARGE"
-                            if(Helper.instance.chargeInhibited){
-                                Helper.instance.enableCharging()
+                            if(Helper.instance.chargerUnplugged){
+                                Helper.instance.disableDischarging()
                             }
-                            Helper.instance.disableSleep()
- 
+                            if((Capacity + 5) <= SMCPresenter.shared.value){
+                                if(Helper.instance.chargeInhibited){
+                                    Helper.instance.enableCharging()
+                                }
+                            }
+                            else if(!IsCharging && !Helper.instance.chargeInhibited)
+                            {
+                                Helper.instance.disableCharging()
+                            }
+
+                            if(IsCharging){
+                                Helper.instance.disableSleep()
+                            }
+                            else{
+                                Helper.instance.enableSleep()
+                            }
                         }
                         else{
                             actionMsg = "IS PERFECT"
+
                             if(!Helper.instance.chargeInhibited){
                                 Helper.instance.disableCharging()
                             }
+
                             Helper.instance.enableSleep()
-                            
+
+                            if(PersistanceManager.instance.allowDischarge &&
+                               Capacity >= (SMCPresenter.shared.value + 5) && IsChargerUsed){
+                                print("need to discharge")
+                                Helper.instance.enableDischarging()
+                            }
+                            else if(Helper.instance.chargerUnplugged){
+                                if(!PersistanceManager.instance.allowDischarge || Capacity == SMCPresenter.shared.value){
+                                    Helper.instance.disableDischarging()
+                                }
+                            }
                         }
                         print("TARGET: ",SMCPresenter.shared.value,
                               " CURRENT: ",String(Capacity),
                               " ISCHARGING: ",String(IsCharging),
+                              " ISCHARGERUSED: ",String(IsChargerUsed),
                               " CHARGE INHIBITED: ",String(Helper.instance.chargeInhibited),
                               " ACTION: ",actionMsg!)
                     }

@@ -39,7 +39,7 @@
 	<key>SMPrivilegedExecutables</key>
 	<dict>
 		<key>com.davidwernhart.Helper</key>
-		<string>identifier "com.davidwernhart.Helper" and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: david.wernhart96@gmail.com (GSDX9BQ584)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+		<string>FillThisIn</string>
 	</dict>
 </dict>
 </plist>

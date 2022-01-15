@@ -29,11 +29,10 @@ private struct RedButtonStyle: ButtonStyle {
     }
 }
 
-private var allowDischarge = true
-
 private struct Settings: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var oldKey = PersistanceManager.instance.oldKey
+    @State private var allowDischarge = PersistanceManager.instance.allowDischarge
     @ObservedObject private var presenter = SMCPresenter.shared
 
     var body: some View {
@@ -42,6 +41,41 @@ private struct Settings: View {
             Text(presenter.status)
             HStack {
                 VStack(alignment: .leading) {
+                    Toggle(isOn: Binding(
+                        get: { allowDischarge },
+
+                        set: { newValue in
+                            allowDischarge = newValue
+                            PersistanceManager.instance.allowDischarge = allowDischarge
+                            PersistanceManager.instance.save()
+                            Helper.instance.setStatusString()
+                        }
+                    )) {
+                        Text("Allow discharging")
+                    }
+                    if(!Helper.instance.appleSilicon!){
+                        Toggle(isOn: Binding(
+                            get: { oldKey },
+
+                            set: { newValue in
+                                oldKey = newValue
+                                PersistanceManager.instance.oldKey = oldKey
+                                PersistanceManager.instance.save()
+                                Helper.instance.setStatusString()
+                                if(newValue){
+                                    Helper.instance.disableDischarging()
+                                    Helper.instance.enableCharging()
+                                    Helper.instance.enableSleep()
+                                    //presenter.writeValue()
+                                }
+                                else{
+                                    presenter.setValue(value: 100)
+                                }
+                            }
+                        )) {
+                            Text("Use classic SMC key (Intel)")
+                        }
+                    }
                     Toggle(isOn: Binding(
                         get: { launchAtLogin },
 
@@ -53,29 +87,6 @@ private struct Settings: View {
                     )) {
                         Text("Launch at login")
                     }
-                    
-                    if(!Helper.instance.appleSilicon!){
-                        Toggle(isOn: Binding(
-                            get: { oldKey },
-
-                            set: { newValue in
-                                oldKey = newValue
-                                PersistanceManager.instance.oldKey = oldKey
-                                PersistanceManager.instance.save()
-                                Helper.instance.setStatusString()
-                                if(newValue){
-                                    Helper.instance.enableCharging()
-                                    Helper.instance.enableSleep()
-                                    //presenter.writeValue()
-                                }
-                                else{
-                                    presenter.setValue(value: 100)
-                                }
-                            }
-                        )) {
-                            Text("Use Classic SMC Key (Intel)")
-                        }
-                    }
                 }.padding()
 
                 Spacer()
@@ -84,37 +95,8 @@ private struct Settings: View {
                     Helper.instance.installHelper()
                 }) {
                     Text("Reinstall Helper")
-                        .frame(maxWidth: 120, maxHeight: 30)
+                        .frame(maxWidth: 120, minHeight: 30, maxHeight: 30)
                 }.buttonStyle(BlueButtonStyle())
-            }
-
-            HStack {
-                Spacer().frame(width: 15)
-                VStack(alignment: .leading) {
-                    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-                    Text("AlDente \(version ?? "") 🍝").font(.headline)
-
-                    let address = "github.com/davidwernhart/AlDente"
-                    Button(action: {
-                        openURL("https://" + address)
-                    }) {
-                        Text(address).foregroundColor(Color(.linkColor))
-                    }.buttonStyle(PlainButtonStyle())
-
-                    Text("Cooked up in 2021 by AppHouseKitchen")
-//                    Text("AlDente 🍝").font(.title)
-//                    Text("Keep your battery just right").font(.subheadline)
-                }
-
-                Spacer()
-
-                Button(action: {
-                    openURL("https://apphousekitchen.com/aldente/")
-                }) {
-                    Text("Get Pro 🍜")
-                        .frame(maxWidth: 100, maxHeight: 50)
-                }
-                .buttonStyle(BlueButtonStyle())
             }
         }
         .background(Color(.unemphasizedSelectedContentBackgroundColor))
@@ -162,7 +144,7 @@ struct ContentView: View {
 
                 Button(action: {
                     showSettings.toggle()
-                    adaptableHeight = showSettings ? 275 : 100
+                    adaptableHeight = showSettings ? (Helper.instance.appleSilicon! ? 228 : 245) : 100
                 }) {
                     Text("Settings")
                         .frame(maxWidth: 70, maxHeight: 30)
@@ -204,8 +186,6 @@ public final class SMCPresenter: ObservableObject, HelperDelegate {
 
     @Published var value: UInt8 = 0
     @Published var status: String = ""
-    private var timer: Timer?
-    private var accuracyTimer: Timer?
 
     func OnMaxBatRead(value: UInt8) {
         if(PersistanceManager.instance.oldKey){
@@ -228,11 +208,7 @@ public final class SMCPresenter: ObservableObject, HelperDelegate {
             self.value = 50
         }
         print("loaded max charge val: ",self.value," old key:",PersistanceManager.instance.oldKey)
-//        if(!Helper.instance.appleSilicon!){
-//            Helper.instance.getSMCCharge(withReply: { (smcval) in
-//                self.value = UInt8(smcval)
-//            })
-//        }
+
         if(PersistanceManager.instance.oldKey){
             writeValue()
         }
@@ -244,9 +220,7 @@ public final class SMCPresenter: ObservableObject, HelperDelegate {
             PersistanceManager.instance.chargeVal = Int(value)
             PersistanceManager.instance.save()
             self.writeValue()
-        }
-        timer?.invalidate()
-        accuracyTimer?.invalidate()        
+        }     
     }
     
     func writeValue(){

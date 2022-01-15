@@ -19,9 +19,5 @@ let helperVersion: String = "10" //for some reason the integrated version check 
     func setSMCByte(key: String, value: UInt8)
     func readSMCByte(key: String, withReply reply: @escaping (UInt8) -> Void)
     func readSMCUInt32(key: String, withReply reply: @escaping (UInt32) -> Void)
-    
-    func createAssertion(assertion:String, withReply reply: @escaping (IOPMAssertionID) -> Void)
-    func releaseAssertion(assertionID:IOPMAssertionID)
-    func setResetVal(key:String, value: UInt8)
 
 }

@@ -7,14 +7,12 @@
 //
 
 import Foundation
-import IOKit.pwr_mgt
 
 final class HelperTool: NSObject, HelperToolProtocol {
     
     static let instance = HelperTool()
     
     var modifiedKeys: [String: UInt8] = [:]
-    var openAssertions: [IOPMAssertionID] = []
     
     func getVersion(withReply reply: (String) -> Void) {
 //        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString" as String) as? String ?? "(unknown version)"
@@ -86,41 +84,10 @@ final class HelperTool: NSObject, HelperToolProtocol {
         }
     }
     
-    func createAssertion(assertion:String, withReply reply: @escaping (IOPMAssertionID) -> Void){
-        var assertionID : IOPMAssertionID = IOPMAssertionID(0)
-        let reason:CFString = "AlDente" as NSString
-        let cfAssertion:CFString = assertion as NSString
-        let success = IOPMAssertionCreateWithName(cfAssertion,
-                        IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                        reason,
-                        &assertionID)
-        if success == kIOReturnSuccess {
-            openAssertions.append(assertionID)
-            reply(assertionID)
-        }
-        else{
-            reply (UInt32(kCFNumberNaN))
-        }
-    }
-    
-    func releaseAssertion(assertionID:IOPMAssertionID){
-        IOPMAssertionRelease(assertionID)
-        openAssertions.remove(at: openAssertions.firstIndex(of: assertionID)!)
-    }
-    
-    func setResetVal(key:String, value: UInt8){
-        modifiedKeys[key]=value
-    }
-    
     func reset(){
         for (key, value) in modifiedKeys{
             setSMCByte(key: key, value: value)
         }
-        
-        for assertionID in openAssertions{
-            releaseAssertion(assertionID: assertionID)
-        }
         modifiedKeys.removeAll()
-        openAssertions.removeAll()
     }
 }

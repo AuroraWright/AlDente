@@ -21,6 +21,7 @@
 		92ACA12B23F5F822003512DC /* HelperTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927DBFCB23F54C2C00F8BF0D /* HelperTool.swift */; };
 		92ACA12E23F5F861003512DC /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92ACA12D23F5F861003512DC /* SMC.swift */; };
 		92E24B4123F6DC0D00BE41ED /* Helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E24B4023F6DC0D00BE41ED /* Helper.swift */; };
+		D0F5B321278ABECC00203C33 /* DisableClamshellSleep.m in Sources */ = {isa = PBXBuildFile; fileRef = D0F5B320278ABECC00203C33 /* DisableClamshellSleep.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -53,6 +54,8 @@
 		92981EE623F08D9C00C05424 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		92ACA12D23F5F861003512DC /* SMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMC.swift; sourceTree = "<group>"; };
 		92E24B4023F6DC0D00BE41ED /* Helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helper.swift; sourceTree = "<group>"; };
+		D0F5B31D278ABD9A00203C33 /* AlDente-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "AlDente-Bridging-Header.h"; sourceTree = "<group>"; };
+		D0F5B320278ABECC00203C33 /* DisableClamshellSleep.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DisableClamshellSleep.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,10 +116,12 @@
 				92981EDA23F08D9B00C05424 /* AppDelegate.swift */,
 				92981EDC23F08D9B00C05424 /* ContentView.swift */,
 				92981EDE23F08D9C00C05424 /* Assets.xcassets */,
+				D0F5B320278ABECC00203C33 /* DisableClamshellSleep.m */,
 				92981EE323F08D9C00C05424 /* Main.storyboard */,
 				92981EE623F08D9C00C05424 /* Info.plist */,
 				92981EE023F08D9C00C05424 /* Preview Content */,
 				928674BF25D07BA300EC79C1 /* PersistanceManager.swift */,
+				D0F5B31D278ABD9A00203C33 /* AlDente-Bridging-Header.h */,
 			);
 			path = AlDente;
 			sourceTree = "<group>";
@@ -184,6 +189,7 @@
 					};
 					92981ED623F08D9B00C05424 = {
 						CreatedOnToolsVersion = 11.3.1;
+						LastSwiftMigration = 1320;
 					};
 				};
 			};
@@ -263,6 +269,7 @@
 				927DBFC923F5478E00F8BF0D /* HelperToolProtocol.swift in Sources */,
 				92981EDD23F08D9B00C05424 /* ContentView.swift in Sources */,
 				92981EDB23F08D9B00C05424 /* AppDelegate.swift in Sources */,
+				D0F5B321278ABECC00203C33 /* DisableClamshellSleep.m in Sources */,
 				92E24B4123F6DC0D00BE41ED /* Helper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -464,12 +471,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Automatic;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = FillThisIn;
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_ASSET_PATHS = "\"AlDente/Preview Content\"";
-				DEVELOPMENT_TEAM = 56C2L92EKW;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = AlDente/Info.plist;
@@ -478,10 +485,11 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.1;
-				MARKETING_VERSION = "2.0 Alpha";
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.davidwernhart.AlDente;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "AlDente/AlDente-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -490,12 +498,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Automatic;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = FillThisIn;
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_ASSET_PATHS = "\"AlDente/Preview Content\"";
-				DEVELOPMENT_TEAM = 56C2L92EKW;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = AlDente/Info.plist;
@@ -504,10 +512,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.1;
-				MARKETING_VERSION = "2.0 Alpha";
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.davidwernhart.AlDente;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "AlDente/AlDente-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -550,7 +558,7 @@
 			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.0.0;
+				minimumVersion = 4.2.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

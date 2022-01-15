@@ -14,16 +14,19 @@ class PersistanceManager{
     public var launchOnLogin: Bool?
     public var chargeVal: Int?
     public var oldKey: Bool = false
+    public var allowDischarge: Bool = false
     
     public func load(){
         launchOnLogin = UserDefaults.standard.bool(forKey: "launchOnLogin")
         oldKey = UserDefaults.standard.bool(forKey: "oldKey")
+        allowDischarge = UserDefaults.standard.bool(forKey: "allowDischarge")
         chargeVal = UserDefaults.standard.integer(forKey: "chargeVal")
     }
     
     public func save(){
         UserDefaults.standard.set(launchOnLogin, forKey: "launchOnLogin")
         UserDefaults.standard.set(chargeVal, forKey: "chargeVal")
+        UserDefaults.standard.set(allowDischarge, forKey: "allowDischarge")
         UserDefaults.standard.set(oldKey, forKey: "oldKey")
     }
 }
