@@ -80,7 +80,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
                     if(!PersistanceManager.instance.oldKey){
 
-                        if(Capacity < SMCPresenter.shared.value){
+                        if(SMCPresenter.shared.value == 100)
+                        {
+                            if(Helper.instance.chargerUnplugged){
+                                Helper.instance.disableDischarging()
+                            }
+
+                            if(Helper.instance.chargeInhibited){
+                                Helper.instance.enableCharging()
+                            }
+
+                            Helper.instance.enableSleep()
+                        }
+                        else if(Capacity < SMCPresenter.shared.value){
                             actionMsg = "NEED TO CHARGE"
                             if(Helper.instance.chargerUnplugged){
                                 Helper.instance.disableDischarging()
